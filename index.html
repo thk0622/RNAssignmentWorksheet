@@ -120,9 +120,13 @@
 <body>
 <h1>Nurse Assignment Worksheet</h1>
 <div id="nurseCalculator">
-<label for="numNurses">Number of Nurses:</label>
-<input id="numNurses" max="18" min="9" oninput="calculateNurses()" type="number"/>
-<span id="nurseResult"></span>
+  <label for="numAssignments">Number of Assignments:</label>
+  <input id="numAssignments" min="9" oninput="calculateNurses()" type="number"/>
+
+  <label for="maxCapacity">Max Capacity:</label>
+  <input id="maxCapacity" min="9" value="18" oninput="calculateNurses()" type="number"/>
+
+  <span id="nurseResult"></span>
 </div>
 <button class="modeBtn active" id="toggleMode">
     Mode: Single (Click to switch to Double)
@@ -145,22 +149,31 @@
 </div>
 <script>
     // ---- Nurse calculator ----
-    function calculateNurses() {
-      var numNurses = parseInt(document.getElementById("numNurses").value);
-      if (isNaN(numNurses)) {
-        document.getElementById("nurseResult").textContent = "";
-        return;
-      }
-      var y = 18 - numNurses;
-      var x = numNurses - y;
-      if (x < 0 || y < 0) {
-        document.getElementById("nurseResult").textContent =
-          "Invalid input. Nurses must be between 9 and 18.";
-        return;
-      }
-      document.getElementById("nurseResult").textContent =
-        "# of Singles: " + x + ", # of Doubles: " + y;
-    }
+    function calculateAssignments() {
+  var numAssignments = parseInt(document.getElementById("numAssignments").value);
+  var maxCapacity = parseInt(document.getElementById("maxCapacity").value);
+
+  if (isNaN(numAssignments) || isNaN(maxCapacity)) {
+    document.getElementById("nurseResult").textContent = "";
+    return;
+  }
+
+  var y = maxCapacity - numAssignments;       // # of doubles
+  var x = numAssignments - y;                 // # of singles
+
+  if (x < 0 || y < 0) {
+    document.getElementById("nurseResult").textContent =
+      "Invalid input. Check that numAssignments <= maxCapacity and both >= 0.";
+    return;
+  }
+
+  document.getElementById("nurseResult").textContent =
+    "# of Singles: " + x + ", # of Doubles: " + y;
+}
+
+  document.getElementById("nurseResult").textContent =
+    "# of Singles: " + x + ", # of Doubles: " + y;
+}
 
     // ---- State ----
     var currentMode = "single";
