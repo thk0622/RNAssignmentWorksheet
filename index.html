@@ -64,6 +64,11 @@
       color: white;
     }
 
+    .room.blocked {
+      background-color: gray;
+      color: white;
+    }
+    
     .room.selected { border-color: orange; }
 
     .room-labels {
@@ -74,7 +79,7 @@
       flex-wrap: wrap;
       gap: 2px;
     }
-
+    
     .room-label {
       font-size: 0.7em;
       background: rgba(200,200,200,0.9);
@@ -169,19 +174,22 @@
     var toggleModeBtn = document.getElementById("toggleMode");
     toggleModeBtn.addEventListener("click", function() {
       if (currentMode === "single") {
-        currentMode = "double";
-        this.textContent = "Mode: Double (Click to switch to Float)";
-      } else if (currentMode === "double") {
-        currentMode = "float";
-        this.textContent = "Mode: Float (Click to switch to Empty)";
-      } else if (currentMode === "float") {
-        currentMode = "empty";
-        this.textContent = "Mode: Empty (Click to switch to Single)";
-        clearTemporarySelections();
-      } else if (currentMode === "empty") {
-        currentMode = "single";
-        this.textContent = "Mode: Single (Click to switch to Double)";
-      }
+  currentMode = "double";
+  this.textContent = "Mode: Double (Click to switch to Float)";
+} else if (currentMode === "double") {
+  currentMode = "float";
+  this.textContent = "Mode: Float (Click to switch to Blocked)";
+} else if (currentMode === "float") {
+  currentMode = "blocked";
+  this.textContent = "Mode: Blocked (Click to switch to Empty)";
+} else if (currentMode === "blocked") {
+  currentMode = "empty";
+  this.textContent = "Mode: Empty (Click to switch to Single)";
+  clearTemporarySelections();
+} else if (currentMode === "empty") {
+  currentMode = "single";
+  this.textContent = "Mode: Single (Click to switch to Double)";
+}
       clearTemporarySelections();
       clearLabelSelection();
     });
@@ -489,11 +497,13 @@
               floatLabels.push("F" + floatPairs.length);
               updatePairLines();
             }
-          } else if (currentMode === "single") {
-            this.classList.add("assigned", "single");
-          } else if (currentMode === "empty") {
-            this.classList.add("assigned", "empty");
-          }
+          }    else if (currentMode === "single") {
+              this.classList.add("assigned", "single");
+            } else if (currentMode === "blocked") {
+              this.classList.add("assigned", "blocked");
+            } else if (currentMode === "empty") {
+              this.classList.add("assigned", "empty");
+            }
 
           e.stopPropagation();
         });
