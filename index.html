@@ -1,547 +1,227 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-<meta charset="utf-8"/>
+<meta charset="UTF-8">
 <title>RN Assignment Worksheet</title>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #nurseCalculator { margin-bottom: 20px; }
-    #nurseCalculator label { font-size: 1em; }
-    #nurseCalculator input { font-size: 1em; padding: 5px; width: 80px; }
-    #nurseResult { font-weight: bold; margin-left: 10px; }
-
-    button.modeBtn, button.labelBtn {
-      font-size: 1em;
-      padding: 10px 20px;
-      margin: 5px;
-      cursor: pointer;
-    }
-    button.modeBtn.active, button.labelBtn.active {
-      background-color: #4CAF50;
-      color: white;
-    }
-
-    #labelButtons, #customLabelDiv { margin-bottom: 20px; }
-
-    .diagram-container {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(6, 100px);
-      grid-template-rows: repeat(9, 100px);
-      gap: 10px;
-      justify-content: center;
-      border: 1px solid #ccc;
-      padding: 20px;
-      margin-top: 20px;
-    }
-
-    .room {
-      border: 2px solid #333;
-      text-align: center;
-      line-height: 100px;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s;
-      overflow: hidden;
-      background-color: white;
-      color: black;
-    }
-
-    .room.single {
-      background-color: green;
-      color: white;
-      border-radius: 50%;
-    }
-
-    .room.assigned.double:not(.empty),
-    .room.assigned.float:not(.empty) {
-      border: none !important;
-    }
-
-    .room.empty {
-      background-color: red;
-      color: white;
-    }
-
-    .room.blocked {
-      background-color: gray;
-      color: white;
-    }
-    
-    .room.selected { border-color: orange; }
-
-    .room-labels {
-      position: absolute;
-      bottom: 2px;
-      right: 2px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
-    }
-    
-    .room-label {
-      font-size: 0.7em;
-      background: rgba(200,200,200,0.9);
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-
-    .diagram-svg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 100;
-    }
-
-    .room-number {
-      pointer-events: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2em;
-    }
-
-    #customLabelInput {
-      font-size: 1em;
-      padding: 5px;
-      width: 150px;
-    }
-  </style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+#calculator { margin-bottom: 20px; }
+#calculator label { margin-right: 5px; }
+#calculator input { width: 60px; padding: 3px; margin-right: 10px; }
+#nurseResult { font-weight: bold; }
+button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+.modeBtn.active, .labelBtn.active { background-color: #4CAF50; color: white; }
+.diagram-container {
+  display: grid;
+  grid-template-columns: repeat(6, 100px);
+  grid-template-rows: repeat(9, 100px);
+  gap: 10px;
+  position: relative;
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-top: 20px;
+  justify-content: center;
+}
+.room {
+  border: 2px solid #333;
+  text-align: center;
+  line-height: 100px;
+  cursor: pointer;
+  position: relative;
+  background-color: white;
+  overflow: hidden;
+}
+.room.single { background-color: green; color: white; border-radius: 50%; }
+.room.empty { background-color: red; color: white; }
+.room.blocked { background-color: gray; color: white; clip-path: polygon(50% 0%,0% 100%,100% 100%); }
+.room.assigned.double, .room.assigned.float { border: none !important; }
+.room.selected { border-color: orange; }
+.diagram-svg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;
+}
+.room-number { position: absolute; width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; font-size:2em; pointer-events:none; }
+.room-labels { position:absolute; bottom:2px; right:2px; display:flex; flex-wrap: wrap; gap:2px; pointer-events:none; }
+.room-label { font-size: 0.7em; background: rgba(200,200,200,0.9); padding: 2px 4px; border-radius:3px; }
+</style>
 </head>
 <body>
-<h1>Nurse Assignment Worksheet</h1>
-<div id="nurseCalculator">
+<h1>RN Assignment Worksheet</h1>
+
+<div id="calculator">
   <label for="numAssignments">Number of Assignments:</label>
-  <input id="numAssignments" min="9" oninput="calculateNurses()" type="number"/>
-
+  <input type="number" id="numAssignments" min="0" oninput="calculateAssignments()">
   <label for="maxCapacity">Max Capacity:</label>
-  <input id="maxCapacity" min="9" value="18" oninput="calculateNurses()" type="number"/>
-
+  <input type="number" id="maxCapacity" min="0" value="18" oninput="calculateAssignments()">
   <span id="nurseResult"></span>
 </div>
-<button class="modeBtn active" id="toggleMode">
-    Mode: Single (Click to switch to Double)
-  </button>
-<button class="modeBtn" id="resetPairsBtn">
-    Reset Pairs
-  </button>
+
+<button id="toggleMode" class="modeBtn active">Mode: Blocked (Click to switch)</button>
+<button id="resetPairsBtn">Reset Pairs</button>
+
 <div id="labelButtons">
-<button class="labelBtn" data-label="OR">OR</button>
-<button class="labelBtn" data-label="WR">WR</button>
-<button class="labelBtn" data-label="Pediatric">Pediatric</button>
-<button class="labelBtn" data-label="Floor Boarder">Floor Boarder</button>
+  <button class="labelBtn" data-label="OR">OR</button>
+  <button class="labelBtn" data-label="WR">WR</button>
+  <button class="labelBtn" data-label="Pediatric">Pediatric</button>
+  <button class="labelBtn" data-label="Floor Boarder">Floor Boarder</button>
 </div>
+
 <div id="customLabelDiv">
-<input id="customLabelInput" placeholder="Custom Label" type="text"/>
-<button class="labelBtn" id="customLabelBtn">Custom</button>
+  <input type="text" id="customLabelInput" placeholder="Custom Label">
+  <button id="customLabelBtn" class="labelBtn">Custom</button>
 </div>
+
 <div class="diagram-container" id="diagramContainer">
-<svg class="diagram-svg" id="diagramSVG"></svg>
+  <svg class="diagram-svg" id="diagramSVG"></svg>
 </div>
+
 <script>
-    // ---- Nurse calculator ----
-    function calculateAssignments() {
+function calculateAssignments() {
   var numAssignments = parseInt(document.getElementById("numAssignments").value);
   var maxCapacity = parseInt(document.getElementById("maxCapacity").value);
-
-  if (isNaN(numAssignments) || isNaN(maxCapacity)) {
-    document.getElementById("nurseResult").textContent = "";
-    return;
-  }
-
-  var y = maxCapacity - numAssignments;       // # of doubles
-  var x = numAssignments - y;                 // # of singles
-
-  if (x < 0 || y < 0) {
-    document.getElementById("nurseResult").textContent =
-      "Invalid input. Check that numAssignments <= maxCapacity and both >= 0.";
-    return;
-  }
-
-  document.getElementById("nurseResult").textContent =
-    "# of Singles: " + x + ", # of Doubles: " + y;
+  if(isNaN(numAssignments) || isNaN(maxCapacity)){ document.getElementById("nurseResult").textContent = ""; return; }
+  var y = maxCapacity - numAssignments;
+  var x = numAssignments - y;
+  if(x<0 || y<0){ document.getElementById("nurseResult").textContent="Invalid input."; return; }
+  document.getElementById("nurseResult").textContent = "# of Singles: "+x+", # of Doubles: "+y;
 }
 
-  document.getElementById("nurseResult").textContent =
-    "# of Singles: " + x + ", # of Doubles: " + y;
-}
+var modes = ["blocked","empty","single","float","double"];
+var modeIndex = 0;
+var currentMode = modes[modeIndex];
+document.getElementById("toggleMode").addEventListener("click",function(){
+  modeIndex = (modeIndex+1)%modes.length;
+  currentMode = modes[modeIndex];
+  this.textContent = "Mode: " + currentMode.charAt(0).toUpperCase()+currentMode.slice(1)+" (Click to switch)";
+});
 
-    // ---- State ----
-    var currentMode = "single";
-    var currentLabel = "";
-    var doublePairs = [];
-    var floatPairs = [];
-    var doubleLabels = [];
-    var floatLabels = [];
+var roomLayout = [
+  {label:"5",row:1,col:2},{label:"6",row:1,col:3},{label:"7",row:1,col:4},{label:"8",row:1,col:5},
+  {label:"4",row:2,col:1},{label:"9",row:2,col:6},{label:"3",row:3,col:1},{label:"10",row:3,col:6},
+  {label:"2",row:4,col:1},{label:"11",row:4,col:6},{label:"1",row:5,col:1},{label:"12",row:5,col:6},
+  {label:"13",row:6,col:6},{label:"14",row:7,col:6},{label:"15",row:8,col:6},{label:"18",row:9,col:3},
+  {label:"17",row:9,col:4},{label:"16",row:9,col:5}
+];
 
-    // ---- Mode toggle ----
-    var toggleModeBtn = document.getElementById("toggleMode");
-    toggleModeBtn.addEventListener("click", function() {
-      if (currentMode === "single") {
-  currentMode = "double";
-  this.textContent = "Mode: Double (Click to switch to Float)";
-} else if (currentMode === "double") {
-  currentMode = "float";
-  this.textContent = "Mode: Float (Click to switch to Blocked)";
-} else if (currentMode === "float") {
-  currentMode = "blocked";
-  this.textContent = "Mode: Blocked (Click to switch to Empty)";
-} else if (currentMode === "blocked") {
-  currentMode = "empty";
-  this.textContent = "Mode: Empty (Click to switch to Single)";
-  clearTemporarySelections();
-} else if (currentMode === "empty") {
-  currentMode = "single";
-  this.textContent = "Mode: Single (Click to switch to Double)";
-}
-      clearTemporarySelections();
-      clearLabelSelection();
-    });
+var currentLabel = "";
+var isLabelActive = false;
+var doublePairs = [], floatPairs = [], doubleLabels = [], floatLabels = [];
 
-    // ---- Label buttons ----
-    var labelButtons = document.querySelectorAll("#labelButtons .labelBtn");
-    labelButtons.forEach(function(btn) {
-      btn.addEventListener("click", function() {
-        if (this.classList.contains("active")) {
-          currentLabel = "";
-          this.classList.remove("active");
-        } else {
-          clearLabelSelection();
-          this.classList.add("active");
-          currentLabel = this.getAttribute("data-label");
-        }
-      });
-    });
+function generateUnitDiagram(){
+  var container = document.getElementById("diagramContainer");
+  container.querySelectorAll(".room").forEach(r=>r.remove());
+  roomLayout.forEach(function(roomObj){
+    var roomDiv = document.createElement("div");
+    roomDiv.className="room";
+    roomDiv.style.gridRow = roomObj.row;
+    roomDiv.style.gridColumn = roomObj.col;
+    roomDiv.dataset.roomId = roomObj.label;
 
-    var customLabelBtn = document.getElementById("customLabelBtn");
-    customLabelBtn.addEventListener("click", function() {
-      var input = document.getElementById("customLabelInput");
-      var text = input.value.trim();
-      if (text !== "") {
-        clearLabelSelection();
-        this.classList.add("active");
-        currentLabel = text;
-      } else {
-        currentLabel = "";
-        this.classList.remove("active");
-      }
-    });
+    var roomNum = document.createElement("div");
+    roomNum.className="room-number";
+    roomNum.textContent = roomObj.label;
+    roomDiv.appendChild(roomNum);
 
-    function clearLabelSelection() {
-      document.querySelectorAll(".labelBtn").forEach(function(btn) {
-        btn.classList.remove("active");
-      });
-      currentLabel = "";
-    }
+    var labelsContainer = document.createElement("div");
+    labelsContainer.className="room-labels";
+    roomDiv.appendChild(labelsContainer);
 
-    function clearTemporarySelections() {
-      document.querySelectorAll(".room.selected").forEach(function(room) {
-        room.classList.remove("selected");
-      });
-    }
-
-    // ---- Geometry helpers ----
-    function getAttachmentPoint(roomEl) {
-      var rect = roomEl.getBoundingClientRect();
-      var num = parseInt(roomEl.dataset.roomId);
-      if (num >= 1 && num <= 4) {
-        // left column, attach from right
-        return { x: rect.right, y: rect.top + rect.height / 2 };
-      } else if (num >= 5 && num <= 8) {
-        // top arc, attach from bottom
-        return { x: rect.left + rect.width / 2, y: rect.bottom };
-      } else if (num >= 9 && num <= 15) {
-        // right column, attach from left
-        return { x: rect.left, y: rect.top + rect.height / 2 };
-      } else if (num >= 16 && num <= 18) {
-        // bottom arc, attach from top
-        return { x: rect.left + rect.width / 2, y: rect.top };
-      }
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    }
-
-    // Always bend arcs toward the center
-    function getControlPointCustom(x1, y1, x2, y2, offset, num1, num2) {
-      // Midpoint of the chord
-      var midX = (x1 + x2) / 2;
-      var midY = (y1 + y2) / 2;
-
-      // Direction of the line between the two points
-      var dx = x2 - x1;
-      var dy = y2 - y1;
-      var len = Math.sqrt(dx * dx + dy * dy);
-      if (len === 0) {
-        return { cx: midX, cy: midY };
+    roomDiv.addEventListener("click",function(){
+      if(isLabelActive && currentLabel){
+        var labelText = currentLabel;
+        if(labelText==="Pediatric") labelText="P";
+        if(labelText==="Floor Boarder") labelText="FB";
+        var existing = Array.from(labelsContainer.children).find(c=>c.textContent===labelText);
+        if(existing){ existing.remove(); }
+        else { var span=document.createElement("span"); span.className="room-label"; span.textContent=labelText; labelsContainer.appendChild(span); }
+        return;
       }
 
-      // Perpendicular (normal) vector
-      var nx = -dy / len;
-      var ny = dx / len;
-
-      // Center of the container in the same coordinate system
-      var containerRect = document.getElementById("diagramContainer").getBoundingClientRect();
-      var centerX = containerRect.width / 2;
-      var centerY = containerRect.height / 2;
-
-      // Two possible control points (on either side of the chord)
-      var c1x = midX + nx * offset;
-      var c1y = midY + ny * offset;
-      var c2x = midX - nx * offset;
-      var c2y = midY - ny * offset;
-
-      function dist2(x, y) {
-        var dx = x - centerX;
-        var dy = y - centerY;
-        return dx * dx + dy * dy;
+      if(this.classList.contains(currentMode)){
+        this.classList.remove("assigned",currentMode);
+        return;
       }
+      this.classList.add("assigned",currentMode);
 
-      // Choose the control point closer to the center => arc bows inward
-      if (dist2(c1x, c1y) < dist2(c2x, c2y)) {
-        return { cx: c1x, cy: c1y };
-      } else {
-        return { cx: c2x, cy: c2y };
-      }
-    }
-
-    // ---- Draw pair lines + labels ----
-    function updatePairLines() {
-      var svg = document.getElementById("diagramSVG");
-      svg.innerHTML = "";
-      var containerRect = document.getElementById("diagramContainer").getBoundingClientRect();
-      var archOffset = 90;
-
-      function drawArch(pair, dashed, labelText) {
-        if (!pair[0] || !pair[1]) return;
-
-        var point1 = getAttachmentPoint(pair[0]);
-        var point2 = getAttachmentPoint(pair[1]);
-
-        var x1 = point1.x - containerRect.left;
-        var y1 = point1.y - containerRect.top;
-        var x2 = point2.x - containerRect.left;
-        var y2 = point2.y - containerRect.top;
-
-        var num1 = parseInt(pair[0].dataset.roomId);
-        var num2 = parseInt(pair[1].dataset.roomId);
-
-        var control = getControlPointCustom(x1, y1, x2, y2, archOffset, num1, num2);
-
-        var pathStr = "M " + x1 + " " + y1 + " Q " + control.cx + " " + control.cy + " " + x2 + " " + y2;
-        var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", pathStr);
-
-        // Choose colors by type: doubles (solid) blue, floats (dashed) purple
-        var strokeColor = dashed ? "#9b59b6" : "#0074D9";  // purple for float, blue for double
-        path.setAttribute("stroke", strokeColor);
-        path.setAttribute("stroke-width", "4");
-        path.setAttribute("fill", "none");
-        if (dashed) path.setAttribute("stroke-dasharray", "10,6");
-        svg.appendChild(path);
-
-        // Label positioned slightly OUTSIDE the curve, same color as arc
-        if (labelText) {
-          var centerX = (containerRect.width) / 2;
-          var centerY = (containerRect.height) / 2;
-          var vx = control.cx - centerX;
-          var vy = control.cy - centerY;
-          var vlen = Math.sqrt(vx * vx + vy * vy) || 1;
-          vx /= vlen;
-          vy /= vlen;
-
-          var labelX = control.cx + vx * 25;
-          var labelY = control.cy + vy * 25;
-
-          var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          text.setAttribute("x", labelX);
-          text.setAttribute("y", labelY);
-          text.setAttribute("fill", strokeColor);
-          text.setAttribute("font-size", "14");
-          text.setAttribute("text-anchor", "middle");
-          text.textContent = labelText;
-          svg.appendChild(text);
+      if(currentMode==="double" || currentMode==="float"){
+        this.classList.add("selected");
+        var selectedRooms = document.querySelectorAll(".room.selected");
+        if(selectedRooms.length===2){
+          selectedRooms.forEach(r=>{ r.classList.remove("selected"); r.classList.add("assigned",currentMode); });
+          if(currentMode==="double"){ doublePairs.push([selectedRooms[0],selectedRooms[1]]); var lbl=prompt("Enter label for this Double pair:","")||("D"+doublePairs.length); doubleLabels.push(lbl); }
+          else { floatPairs.push([selectedRooms[0],selectedRooms[1]]); floatLabels.push("F"+floatPairs.length); }
+          updatePairLines();
         }
       }
-
-      // Draw doubles (solid)
-      for (var i = 0; i < doublePairs.length; i++) {
-        var lbl = doubleLabels[i] || ("D" + (i + 1));
-        drawArch(doublePairs[i], false, lbl);
-      }
-      // Draw floats (dashed)
-      for (var j = 0; j < floatPairs.length; j++) {
-        var flbl = floatLabels[j] || ("F" + (j + 1));
-        drawArch(floatPairs[j], true, flbl);
-      }
-    }
-
-    // ---- Layout ----
-    var roomLayout = [
-      { label: "5",  row: 1, col: 2 },
-      { label: "6",  row: 1, col: 3 },
-      { label: "7",  row: 1, col: 4 },
-      { label: "8",  row: 1, col: 5 },
-      { label: "4",  row: 2, col: 1 },
-      { label: "9",  row: 2, col: 6 },
-      { label: "3",  row: 3, col: 1 },
-      { label: "10", row: 3, col: 6 },
-      { label: "2",  row: 4, col: 1 },
-      { label: "11", row: 4, col: 6 },
-      { label: "1",  row: 5, col: 1 },
-      { label: "12", row: 5, col: 6 },
-      { label: "13", row: 6, col: 6 },
-      { label: "14", row: 7, col: 6 },
-      { label: "15", row: 8, col: 6 },
-      { label: "18", row: 9, col: 3 },
-      { label: "17", row: 9, col: 4 },
-      { label: "16", row: 9, col: 5 }
-    ];
-
-    function generateUnitDiagram() {
-      var container = document.getElementById("diagramContainer");
-      container.querySelectorAll(".room").forEach(function(room) { room.remove(); });
-
-      roomLayout.forEach(function(roomObj) {
-        var roomDiv = document.createElement("div");
-        roomDiv.className = "room";
-        roomDiv.style.gridRow = roomObj.row;
-        roomDiv.style.gridColumn = roomObj.col;
-        roomDiv.dataset.roomId = roomObj.label;
-
-        var roomNumberDiv = document.createElement("div");
-        roomNumberDiv.className = "room-number";
-        roomNumberDiv.textContent = roomObj.label;
-        roomDiv.appendChild(roomNumberDiv);
-
-        var labelsContainer = document.createElement("div");
-        labelsContainer.className = "room-labels";
-        roomDiv.appendChild(labelsContainer);
-
-        roomDiv.addEventListener("click", function(e) {
-          // Toggle off if already assigned in the same mode
-          if (this.classList.contains("assigned")) {
-            var sameMode =
-              (currentMode === "single" && this.classList.contains("single")) ||
-              (currentMode === "double" && this.classList.contains("double")) ||
-              (currentMode === "float"  && this.classList.contains("float"))  ||
-              (currentMode === "empty"  && this.classList.contains("empty"));
-
-            if (sameMode) {
-              // Remove from pairs if double/float
-              if (currentMode === "double") {
-                var idx = doublePairs.findIndex(function(p) {
-                  return p[0] === e.currentTarget || p[1] === e.currentTarget;
-                });
-                if (idx >= 0) {
-                  doublePairs.splice(idx, 1);
-                  doubleLabels.splice(idx, 1);
-                }
-                updatePairLines();
-              } else if (currentMode === "float") {
-                var fidx = floatPairs.findIndex(function(p) {
-                  return p[0] === e.currentTarget || p[1] === e.currentTarget;
-                });
-                if (fidx >= 0) {
-                  floatPairs.splice(fidx, 1);
-                  floatLabels.splice(fidx, 1);
-                }
-                updatePairLines();
-              }
-              this.classList.remove("assigned", "single", "double", "float", "empty");
-              return;
-            }
-          }
-
-          // Label placement (OR / WR / P / FB / custom)
-          if (currentLabel !== "") {
-            var labelToPlace = currentLabel;
-            if (currentLabel === "Pediatric") { labelToPlace = "P"; }
-            else if (currentLabel === "Floor Boarder") { labelToPlace = "FB"; }
-
-            var labelContainer = this.querySelector(".room-labels");
-            var existing = Array.from(labelContainer.children).find(function(el) {
-              return el.textContent === labelToPlace;
-            });
-            if (existing) {
-              labelContainer.removeChild(existing);
-            } else {
-              var newLabel = document.createElement("span");
-              newLabel.className = "room-label";
-              newLabel.textContent = labelToPlace;
-              labelContainer.appendChild(newLabel);
-            }
-            clearLabelSelection();
-            return;
-          }
-
-          // Pairing logic
-          if (currentMode === "double") {
-            this.classList.add("selected");
-            var selectedRooms = document.querySelectorAll(".room.selected");
-            if (selectedRooms.length === 2) {
-              selectedRooms.forEach(function(roomEl) {
-                roomEl.classList.remove("selected");
-                roomEl.classList.add("assigned", "double");
-              });
-              var pair = [selectedRooms[0], selectedRooms[1]];
-              doublePairs.push(pair);
-              var lbl = prompt("Enter label for this Double pair:", "") || ("D" + doublePairs.length);
-              doubleLabels.push(lbl);
-              updatePairLines();
-            }
-          } else if (currentMode === "float") {
-            this.classList.add("selected");
-            var fSelected = document.querySelectorAll(".room.selected");
-            if (fSelected.length === 2) {
-              fSelected.forEach(function(roomEl) {
-                roomEl.classList.remove("selected");
-                roomEl.classList.add("assigned", "float");
-              });
-              var fpair = [fSelected[0], fSelected[1]];
-              floatPairs.push(fpair);
-              floatLabels.push("F" + floatPairs.length);
-              updatePairLines();
-            }
-          }    else if (currentMode === "single") {
-              this.classList.add("assigned", "single");
-            } else if (currentMode === "blocked") {
-              this.classList.add("assigned", "blocked");
-            } else if (currentMode === "empty") {
-              this.classList.add("assigned", "empty");
-            }
-
-          e.stopPropagation();
-        });
-
-        container.appendChild(roomDiv);
-      });
-    }
-
-    // ---- Reset pairs button ----
-    document.getElementById("resetPairsBtn").addEventListener("click", function() {
-      doublePairs = [];
-      floatPairs = [];
-      doubleLabels = [];
-      floatLabels = [];
-      document.querySelectorAll(".room.double, .room.float").forEach(function(room) {
-        room.classList.remove("assigned", "double", "float");
-      });
-      updatePairLines();
     });
+    container.appendChild(roomDiv);
+  });
+}
 
-    // ---- Init ----
-    window.onload = function() {
-      generateUnitDiagram();
-      calculateNurses();
-    };
-  </script>
+document.querySelectorAll(".labelBtn").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var label = btn.getAttribute("data-label");
+    if(currentLabel===label){ currentLabel=""; isLabelActive=false; btn.classList.remove("active"); }
+    else{ currentLabel=label; isLabelActive=true; document.querySelectorAll(".labelBtn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); }
+  });
+});
+document.getElementById("customLabelBtn").addEventListener("click",function(){
+  var input=document.getElementById("customLabelInput").value.trim();
+  if(input){
+    if(currentLabel===input){ currentLabel=""; isLabelActive=false; this.classList.remove("active"); }
+    else{ currentLabel=input; isLabelActive=true; document.querySelectorAll(".labelBtn").forEach(b=>b.classList.remove("active")); this.classList.add("active"); }
+  }
+});
+
+document.getElementById("resetPairsBtn").addEventListener("click",function(){
+  document.querySelectorAll(".room.double,.room.float").forEach(r=>{ r.classList.remove("assigned","double","float"); });
+  doublePairs=[]; floatPairs=[]; doubleLabels=[]; floatLabels=[];
+  updatePairLines();
+});
+
+function getAttachmentPoint(roomEl){
+  var rect = roomEl.getBoundingClientRect();
+  return {x: rect.left + rect.width/2, y: rect.top + rect.height/2};
+}
+
+function updatePairLines(){
+  var svg = document.getElementById("diagramSVG"); svg.innerHTML="";
+  var containerRect = document.getElementById("diagramContainer").getBoundingClientRect();
+  var centerX = containerRect.width/2;
+  var centerY = containerRect.height/2;
+  var offset = 160; // doubled amplitude
+  function drawArch(pair,dashed,color,label){
+    if(!pair[0]||!pair[1]) return;
+    var r1 = getAttachmentPoint(pair[0]), r2 = getAttachmentPoint(pair[1]);
+    var x1 = r1.x - containerRect.left, y1 = r1.y - containerRect.top;
+    var x2 = r2.x - containerRect.left, y2 = r2.y - containerRect.top;
+    var midX = (x1+x2)/2, midY = (y1+y2)/2;
+    var dx = x2 - x1, dy = y2 - y1;
+    var cx, cy;
+    if(Math.abs(dx) > Math.abs(dy)){
+      cy = midY + (midY<centerY? offset : -offset);
+      cx = midX;
+    } else {
+      cx = midX + (midX<centerX? offset : -offset);
+      cy = midY;
+    }
+    var path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d",`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+    path.setAttribute("stroke",color); path.setAttribute("stroke-width","4"); path.setAttribute("fill","none");
+    if(dashed) path.setAttribute("stroke-dasharray","10,6");
+    svg.appendChild(path);
+    if(label){
+      var text=document.createElementNS("http://www.w3.org/2000/svg","text");
+      text.setAttribute("x",cx); text.setAttribute("y",cy-10); text.setAttribute("fill",color);
+      text.setAttribute("text-anchor","middle"); text.textContent=label;
+      svg.appendChild(text);
+    }
+  }
+  doublePairs.forEach((p,i)=>drawArch(p,false,"#0074D9",doubleLabels[i]));
+  floatPairs.forEach((p,i)=>drawArch(p,true,"#9b59b6",floatLabels[i]));
+}
+
+window.onload=function(){ generateUnitDiagram(); calculateAssignments(); };
+</script>
 </body>
 </html>
