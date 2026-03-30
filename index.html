@@ -1,227 +1,741 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RN Assignment Worksheet</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-#calculator { margin-bottom: 20px; }
-#calculator label { margin-right: 5px; }
-#calculator input { width: 60px; padding: 3px; margin-right: 10px; }
-#nurseResult { font-weight: bold; }
-button { padding: 8px 12px; margin: 5px; cursor: pointer; }
-.modeBtn.active, .labelBtn.active { background-color: #4CAF50; color: white; }
-.diagram-container {
-  display: grid;
-  grid-template-columns: repeat(6, 100px);
-  grid-template-rows: repeat(9, 100px);
-  gap: 10px;
-  position: relative;
-  border: 1px solid #ccc;
-  padding: 20px;
-  margin-top: 20px;
-  justify-content: center;
-}
-.room {
-  border: 2px solid #333;
-  text-align: center;
-  line-height: 100px;
-  cursor: pointer;
-  position: relative;
-  background-color: white;
-  overflow: hidden;
-}
-.room.single { background-color: green; color: white; border-radius: 50%; }
-.room.empty { background-color: red; color: white; }
-.room.blocked { background-color: gray; color: white; clip-path: polygon(50% 0%,0% 100%,100% 100%); }
-.room.assigned.double, .room.assigned.float { border: none !important; }
-.room.selected { border-color: orange; }
-.diagram-svg {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;
-}
-.room-number { position: absolute; width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; font-size:2em; pointer-events:none; }
-.room-labels { position:absolute; bottom:2px; right:2px; display:flex; flex-wrap: wrap; gap:2px; pointer-events:none; }
-.room-label { font-size: 0.7em; background: rgba(200,200,200,0.9); padding: 2px 4px; border-radius:3px; }
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2535;
+    --border: #2a3045;
+    --text: #e4e8f5;
+    --text-muted: #6b7694;
+    --accent: #4f9fff;
+
+    --single: #22c55e;
+    --single-bg: rgba(34,197,94,0.15);
+    --empty: #ef4444;
+    --empty-bg: rgba(239,68,68,0.15);
+    --blocked: #64748b;
+    --blocked-bg: rgba(100,116,139,0.15);
+    --double: #f59e0b;
+    --double-bg: rgba(245,158,11,0.15);
+    --float: #a78bfa;
+    --float-bg: rgba(167,139,250,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    letter-spacing: 0.04em;
+  }
+
+  .top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  /* Calculator */
+  .calc-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .calc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .calc-field label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .calc-field input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    padding: 6px 10px;
+    width: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .calc-field input:focus { border-color: var(--accent); }
+
+  .calc-result {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    min-width: 200px;
+    align-self: flex-end;
+  }
+
+  .calc-result span { color: var(--accent); font-weight: 500; }
+
+  /* Mode & Label Controls */
+  .controls-card { flex: 1; min-width: 280px; }
+
+  .mode-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .mode-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mode-btn .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  .mode-btn:hover { border-color: #3a4060; color: var(--text); }
+
+  .mode-btn.active[data-mode="single"] { background: var(--single-bg); border-color: var(--single); color: var(--single); }
+  .mode-btn.active[data-mode="empty"]  { background: var(--empty-bg);  border-color: var(--empty);  color: var(--empty);  }
+  .mode-btn.active[data-mode="blocked"]{ background: var(--blocked-bg);border-color: var(--blocked);color: var(--blocked);}
+  .mode-btn.active[data-mode="double"] { background: var(--double-bg); border-color: var(--double); color: var(--double); }
+  .mode-btn.active[data-mode="float"]  { background: var(--float-bg);  border-color: var(--float);  color: var(--float);  }
+
+  .label-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .label-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+
+  .label-btn:hover { color: var(--text); border-color: #3a4060; }
+  .label-btn.active { background: rgba(79,159,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .custom-label-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .custom-label-wrap input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    width: 120px;
+    outline: none;
+  }
+
+  .custom-label-wrap input:focus { border-color: var(--accent); }
+
+  .reset-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #3a2020;
+    background: rgba(239,68,68,0.08);
+    color: #f87171;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+
+  .reset-btn:hover { background: rgba(239,68,68,0.18); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px;
+  }
+
+  /* Diagram */
+  .diagram-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    overflow: auto;
+  }
+
+  .diagram-container {
+    display: grid;
+    grid-template-columns: repeat(6, 90px);
+    grid-template-rows: repeat(9, 90px);
+    gap: 10px;
+    position: relative;
+    margin: 0 auto;
+    width: fit-content;
+  }
+
+  .room {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    background: var(--surface2);
+    overflow: hidden;
+    transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+    user-select: none;
+  }
+
+  .room:hover {
+    border-color: #3a4060;
+    transform: scale(1.04);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    z-index: 10;
+  }
+
+  .room.single  { background: var(--single-bg);  border-color: var(--single);  }
+  .room.empty   { background: var(--empty-bg);   border-color: var(--empty);   }
+  .room.blocked { background: var(--blocked-bg); border-color: var(--blocked); opacity: 0.6; }
+  .room.double  { background: var(--double-bg);  border-color: var(--double);  }
+  .room.float   { background: var(--float-bg);   border-color: var(--float);   }
+
+  .room.selected {
+    box-shadow: 0 0 0 3px var(--accent);
+    border-color: var(--accent) !important;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(79,159,255,0.8); }
+    50%      { box-shadow: 0 0 0 6px rgba(79,159,255,0.3); }
+  }
+
+  .room-number {
+    position: absolute;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 500;
+    pointer-events: none;
+    color: var(--text);
+  }
+
+  .room.single  .room-number { color: var(--single);  }
+  .room.empty   .room-number { color: var(--empty);   }
+  .room.blocked .room-number { color: var(--blocked); }
+  .room.double  .room-number { color: var(--double);  }
+  .room.float   .room-number { color: var(--float);   }
+
+  .room-labels {
+    position: absolute;
+    bottom: 3px; left: 3px; right: 3px;
+    display: flex; flex-wrap: wrap; gap: 2px;
+    pointer-events: none;
+    justify-content: center;
+  }
+
+  .room-label {
+    font-size: 0.55rem;
+    font-family: 'DM Mono', monospace;
+    background: rgba(0,0,0,0.4);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+
+  .diagram-svg {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Status bar */
+  .status-bar {
+    margin-top: 16px;
+    display: flex;
+    gap: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .status-item { display: flex; align-items: center; gap: 6px; }
+  .status-count { color: var(--text); font-weight: 500; }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
 </style>
 </head>
 <body>
+
 <h1>RN Assignment Worksheet</h1>
+<p class="subtitle">// UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
 
-<div id="calculator">
-  <label for="numAssignments">Number of Assignments:</label>
-  <input type="number" id="numAssignments" min="0" oninput="calculateAssignments()">
-  <label for="maxCapacity">Max Capacity:</label>
-  <input type="number" id="maxCapacity" min="0" value="18" oninput="calculateAssignments()">
-  <span id="nurseResult"></span>
+<div class="top-bar">
+  <!-- Calculator -->
+  <div class="card">
+    <div class="card-label">Nurse Calculator</div>
+    <div class="calc-row">
+      <div class="calc-field">
+        <label>Assignments</label>
+        <input type="number" id="numAssignments" min="0" placeholder="—" oninput="calculateAssignments()">
+      </div>
+      <div class="calc-field">
+        <label>Max Capacity</label>
+        <input type="number" id="maxCapacity" min="0" value="18" oninput="calculateAssignments()">
+      </div>
+      <div class="calc-result" id="nurseResult">Enter values above</div>
+    </div>
+  </div>
+
+  <!-- Mode & Label Controls -->
+  <div class="card controls-card">
+    <div class="card-label">Room Mode</div>
+    <div class="mode-strip">
+      <button class="mode-btn" data-mode="blocked"><span class="dot"></span>Blocked</button>
+      <button class="mode-btn" data-mode="empty"><span class="dot"></span>Empty</button>
+      <button class="mode-btn active" data-mode="single"><span class="dot"></span>Single</button>
+      <button class="mode-btn" data-mode="double"><span class="dot"></span>Double</button>
+      <button class="mode-btn" data-mode="float"><span class="dot"></span>Float</button>
+    </div>
+    <div class="card-label" style="margin-top:4px">Labels</div>
+    <div class="label-strip">
+      <button class="label-btn" data-label="OR">OR</button>
+      <button class="label-btn" data-label="WR">WR</button>
+      <button class="label-btn" data-label="P">Pediatric</button>
+      <button class="label-btn" data-label="FB">Floor Boarder</button>
+      <div class="custom-label-wrap">
+        <input type="text" id="customLabelInput" placeholder="Custom…" maxlength="6">
+        <button class="label-btn" id="customLabelBtn">Add</button>
+      </div>
+      <button class="reset-btn" id="resetPairsBtn">↺ Reset Pairs</button>
+    </div>
+  </div>
 </div>
 
-<button id="toggleMode" class="modeBtn active">Mode: Blocked (Click to switch)</button>
-<button id="resetPairsBtn">Reset Pairs</button>
-
-<div id="labelButtons">
-  <button class="labelBtn" data-label="OR">OR</button>
-  <button class="labelBtn" data-label="WR">WR</button>
-  <button class="labelBtn" data-label="Pediatric">Pediatric</button>
-  <button class="labelBtn" data-label="Floor Boarder">Floor Boarder</button>
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--single)"></div>Single</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--empty)"></div>Empty</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--blocked)"></div>Blocked</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--double)"></div>Double</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--float)"></div>Float</div>
+  <div class="legend-item" style="margin-left:auto">Click room to apply mode · Click again to clear · Double/Float: select 2 rooms</div>
 </div>
 
-<div id="customLabelDiv">
-  <input type="text" id="customLabelInput" placeholder="Custom Label">
-  <button id="customLabelBtn" class="labelBtn">Custom</button>
+<!-- Diagram -->
+<div class="diagram-wrapper">
+  <div class="diagram-container" id="diagramContainer">
+    <svg class="diagram-svg" id="diagramSVG"></svg>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar"></div>
 </div>
 
-<div class="diagram-container" id="diagramContainer">
-  <svg class="diagram-svg" id="diagramSVG"></svg>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
-function calculateAssignments() {
-  var numAssignments = parseInt(document.getElementById("numAssignments").value);
-  var maxCapacity = parseInt(document.getElementById("maxCapacity").value);
-  if(isNaN(numAssignments) || isNaN(maxCapacity)){ document.getElementById("nurseResult").textContent = ""; return; }
-  var y = maxCapacity - numAssignments;
-  var x = numAssignments - y;
-  if(x<0 || y<0){ document.getElementById("nurseResult").textContent="Invalid input."; return; }
-  document.getElementById("nurseResult").textContent = "# of Singles: "+x+", # of Doubles: "+y;
-}
-
-var modes = ["blocked","empty","single","float","double"];
-var modeIndex = 0;
-var currentMode = modes[modeIndex];
-document.getElementById("toggleMode").addEventListener("click",function(){
-  modeIndex = (modeIndex+1)%modes.length;
-  currentMode = modes[modeIndex];
-  this.textContent = "Mode: " + currentMode.charAt(0).toUpperCase()+currentMode.slice(1)+" (Click to switch)";
-});
-
-var roomLayout = [
-  {label:"5",row:1,col:2},{label:"6",row:1,col:3},{label:"7",row:1,col:4},{label:"8",row:1,col:5},
-  {label:"4",row:2,col:1},{label:"9",row:2,col:6},{label:"3",row:3,col:1},{label:"10",row:3,col:6},
-  {label:"2",row:4,col:1},{label:"11",row:4,col:6},{label:"1",row:5,col:1},{label:"12",row:5,col:6},
-  {label:"13",row:6,col:6},{label:"14",row:7,col:6},{label:"15",row:8,col:6},{label:"18",row:9,col:3},
-  {label:"17",row:9,col:4},{label:"16",row:9,col:5}
-];
-
+// ── State ───────────────────────────────────────────────────────────────
+var currentMode = "single";
 var currentLabel = "";
 var isLabelActive = false;
 var doublePairs = [], floatPairs = [], doubleLabels = [], floatLabels = [];
 
-function generateUnitDiagram(){
+// ── Calculator ──────────────────────────────────────────────────────────
+function calculateAssignments() {
+  var n = parseInt(document.getElementById("numAssignments").value);
+  var m = parseInt(document.getElementById("maxCapacity").value);
+  var el = document.getElementById("nurseResult");
+  if (isNaN(n) || isNaN(m)) { el.innerHTML = "Enter values above"; return; }
+  var doubles = m - n, singles = n - doubles;
+  if (singles < 0 || doubles < 0) { el.innerHTML = "<span style='color:var(--empty)'>Invalid input</span>"; return; }
+  el.innerHTML = "Singles: <span>" + singles + "</span> &nbsp; Doubles: <span>" + doubles + "</span>";
+}
+
+// ── Mode buttons ────────────────────────────────────────────────────────
+document.querySelectorAll(".mode-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentMode = btn.dataset.mode;
+    // Deactivate label mode when switching room mode
+    isLabelActive = false;
+    currentLabel = "";
+    document.querySelectorAll(".label-btn").forEach(b => b.classList.remove("active"));
+    showToast("Mode: " + currentMode.charAt(0).toUpperCase() + currentMode.slice(1));
+  });
+});
+
+// ── Label buttons ───────────────────────────────────────────────────────
+document.querySelectorAll(".label-btn[data-label]").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    var label = btn.dataset.label;
+    if (currentLabel === label && isLabelActive) {
+      currentLabel = ""; isLabelActive = false;
+      btn.classList.remove("active");
+    } else {
+      currentLabel = label; isLabelActive = true;
+      document.querySelectorAll(".label-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      showToast("Label mode: " + label);
+    }
+  });
+});
+
+document.getElementById("customLabelBtn").addEventListener("click", function() {
+  var val = document.getElementById("customLabelInput").value.trim().slice(0, 6);
+  if (!val) return;
+  if (currentLabel === val && isLabelActive) {
+    currentLabel = ""; isLabelActive = false;
+    this.classList.remove("active");
+  } else {
+    currentLabel = val; isLabelActive = true;
+    document.querySelectorAll(".label-btn").forEach(b => b.classList.remove("active"));
+    this.classList.add("active");
+    showToast("Label mode: " + val);
+  }
+});
+
+// ── Reset pairs ─────────────────────────────────────────────────────────
+document.getElementById("resetPairsBtn").addEventListener("click", function() {
+  document.querySelectorAll(".room.double,.room.float").forEach(function(r) {
+    r.classList.remove("assigned", "double", "float", "selected");
+  });
+  doublePairs = []; floatPairs = []; doubleLabels = []; floatLabels = [];
+  updatePairLines();
+  updateStatus();
+  showToast("Pairs reset");
+});
+
+// ── Room layout ─────────────────────────────────────────────────────────
+var roomLayout = [
+  {label:"5",row:1,col:2},{label:"6",row:1,col:3},{label:"7",row:1,col:4},{label:"8",row:1,col:5},
+  {label:"4",row:2,col:1},{label:"9",row:2,col:6},{label:"3",row:3,col:1},{label:"10",row:3,col:6},
+  {label:"2",row:4,col:1},{label:"11",row:4,col:6},{label:"1",row:5,col:1},{label:"12",row:5,col:6},
+  {label:"13",row:6,col:6},{label:"14",row:7,col:6},{label:"15",row:8,col:6},
+  {label:"18",row:9,col:3},{label:"17",row:9,col:4},{label:"16",row:9,col:5}
+];
+
+// ── Generate diagram ────────────────────────────────────────────────────
+function generateUnitDiagram() {
   var container = document.getElementById("diagramContainer");
-  container.querySelectorAll(".room").forEach(r=>r.remove());
-  roomLayout.forEach(function(roomObj){
+  container.querySelectorAll(".room").forEach(function(r) { r.remove(); });
+
+  roomLayout.forEach(function(roomObj) {
     var roomDiv = document.createElement("div");
-    roomDiv.className="room";
+    roomDiv.className = "room";
     roomDiv.style.gridRow = roomObj.row;
     roomDiv.style.gridColumn = roomObj.col;
     roomDiv.dataset.roomId = roomObj.label;
 
-    var roomNum = document.createElement("div");
-    roomNum.className="room-number";
-    roomNum.textContent = roomObj.label;
-    roomDiv.appendChild(roomNum);
+    var numEl = document.createElement("div");
+    numEl.className = "room-number";
+    numEl.textContent = roomObj.label;
+    roomDiv.appendChild(numEl);
 
-    var labelsContainer = document.createElement("div");
-    labelsContainer.className="room-labels";
-    roomDiv.appendChild(labelsContainer);
+    var labelsEl = document.createElement("div");
+    labelsEl.className = "room-labels";
+    roomDiv.appendChild(labelsEl);
 
-    roomDiv.addEventListener("click",function(){
-      if(isLabelActive && currentLabel){
-        var labelText = currentLabel;
-        if(labelText==="Pediatric") labelText="P";
-        if(labelText==="Floor Boarder") labelText="FB";
-        var existing = Array.from(labelsContainer.children).find(c=>c.textContent===labelText);
-        if(existing){ existing.remove(); }
-        else { var span=document.createElement("span"); span.className="room-label"; span.textContent=labelText; labelsContainer.appendChild(span); }
-        return;
-      }
-
-      if(this.classList.contains(currentMode)){
-        this.classList.remove("assigned",currentMode);
-        return;
-      }
-      this.classList.add("assigned",currentMode);
-
-      if(currentMode==="double" || currentMode==="float"){
-        this.classList.add("selected");
-        var selectedRooms = document.querySelectorAll(".room.selected");
-        if(selectedRooms.length===2){
-          selectedRooms.forEach(r=>{ r.classList.remove("selected"); r.classList.add("assigned",currentMode); });
-          if(currentMode==="double"){ doublePairs.push([selectedRooms[0],selectedRooms[1]]); var lbl=prompt("Enter label for this Double pair:","")||("D"+doublePairs.length); doubleLabels.push(lbl); }
-          else { floatPairs.push([selectedRooms[0],selectedRooms[1]]); floatLabels.push("F"+floatPairs.length); }
-          updatePairLines();
-        }
-      }
-    });
+    roomDiv.addEventListener("click", function() { handleRoomClick(roomDiv, labelsEl); });
     container.appendChild(roomDiv);
   });
 }
 
-document.querySelectorAll(".labelBtn").forEach(function(btn){
-  btn.addEventListener("click",function(){
-    var label = btn.getAttribute("data-label");
-    if(currentLabel===label){ currentLabel=""; isLabelActive=false; btn.classList.remove("active"); }
-    else{ currentLabel=label; isLabelActive=true; document.querySelectorAll(".labelBtn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); }
-  });
-});
-document.getElementById("customLabelBtn").addEventListener("click",function(){
-  var input=document.getElementById("customLabelInput").value.trim();
-  if(input){
-    if(currentLabel===input){ currentLabel=""; isLabelActive=false; this.classList.remove("active"); }
-    else{ currentLabel=input; isLabelActive=true; document.querySelectorAll(".labelBtn").forEach(b=>b.classList.remove("active")); this.classList.add("active"); }
+function handleRoomClick(roomDiv, labelsEl) {
+  // Label mode
+  if (isLabelActive && currentLabel) {
+    var existing = Array.from(labelsEl.children).find(c => c.textContent === currentLabel);
+    if (existing) { existing.remove(); }
+    else {
+      var span = document.createElement("span");
+      span.className = "room-label";
+      span.textContent = currentLabel;
+      labelsEl.appendChild(span);
+    }
+    return;
   }
-});
 
-document.getElementById("resetPairsBtn").addEventListener("click",function(){
-  document.querySelectorAll(".room.double,.room.float").forEach(r=>{ r.classList.remove("assigned","double","float"); });
-  doublePairs=[]; floatPairs=[]; doubleLabels=[]; floatLabels=[];
-  updatePairLines();
-});
+  var statusClasses = ["single","empty","blocked","double","float"];
 
-function getAttachmentPoint(roomEl){
-  var rect = roomEl.getBoundingClientRect();
-  return {x: rect.left + rect.width/2, y: rect.top + rect.height/2};
+  // Clicking same mode: clear
+  if (roomDiv.classList.contains(currentMode)) {
+    // If it's a paired room, remove its pair
+    removePairContaining(roomDiv);
+    statusClasses.forEach(c => roomDiv.classList.remove(c));
+    roomDiv.classList.remove("selected");
+    updatePairLines();
+    updateStatus();
+    return;
+  }
+
+  // For double/float: two-step selection
+  if (currentMode === "double" || currentMode === "float") {
+    // If already selected for pairing, deselect
+    if (roomDiv.classList.contains("selected")) {
+      roomDiv.classList.remove("selected");
+      return;
+    }
+    statusClasses.forEach(c => roomDiv.classList.remove(c));
+    roomDiv.classList.add(currentMode, "selected");
+
+    var selectedRooms = Array.from(document.querySelectorAll(".room.selected"));
+    if (selectedRooms.length === 2) {
+      selectedRooms.forEach(r => r.classList.remove("selected"));
+      if (currentMode === "double") {
+        var lbl = prompt("Label for this Double pair:", "") || ("D" + (doublePairs.length + 1));
+        doublePairs.push([selectedRooms[0], selectedRooms[1]]);
+        doubleLabels.push(lbl);
+      } else {
+        floatPairs.push([selectedRooms[0], selectedRooms[1]]);
+        floatLabels.push("F" + floatPairs.length);
+      }
+      updatePairLines();
+    }
+    updateStatus();
+    return;
+  }
+
+  // Normal mode: apply
+  statusClasses.forEach(c => roomDiv.classList.remove(c));
+  roomDiv.classList.remove("selected");
+  roomDiv.classList.add(currentMode);
+  updateStatus();
 }
 
-function updatePairLines(){
-  var svg = document.getElementById("diagramSVG"); svg.innerHTML="";
-  var containerRect = document.getElementById("diagramContainer").getBoundingClientRect();
-  var centerX = containerRect.width/2;
-  var centerY = containerRect.height/2;
-  var offset = 160; // doubled amplitude
-  function drawArch(pair,dashed,color,label){
-    if(!pair[0]||!pair[1]) return;
-    var r1 = getAttachmentPoint(pair[0]), r2 = getAttachmentPoint(pair[1]);
-    var x1 = r1.x - containerRect.left, y1 = r1.y - containerRect.top;
-    var x2 = r2.x - containerRect.left, y2 = r2.y - containerRect.top;
-    var midX = (x1+x2)/2, midY = (y1+y2)/2;
-    var dx = x2 - x1, dy = y2 - y1;
+function removePairContaining(roomDiv) {
+  doublePairs = doublePairs.filter(function(pair, i) {
+    if (pair[0] === roomDiv || pair[1] === roomDiv) {
+      doubleLabels.splice(i, 1);
+      pair.forEach(r => r.classList.remove("double"));
+      return false;
+    }
+    return true;
+  });
+  floatPairs = floatPairs.filter(function(pair, i) {
+    if (pair[0] === roomDiv || pair[1] === roomDiv) {
+      floatLabels.splice(i, 1);
+      pair.forEach(r => r.classList.remove("float"));
+      return false;
+    }
+    return true;
+  });
+}
+
+// ── SVG pair lines ──────────────────────────────────────────────────────
+function getCenter(el) {
+  var container = document.getElementById("diagramContainer");
+  var cRect = container.getBoundingClientRect();
+  var eRect = el.getBoundingClientRect();
+  return {
+    x: eRect.left - cRect.left + eRect.width / 2,
+    y: eRect.top  - cRect.top  + eRect.height / 2
+  };
+}
+
+function updatePairLines() {
+  var svg = document.getElementById("diagramSVG");
+  svg.innerHTML = "";
+
+  var container = document.getElementById("diagramContainer");
+  var cRect = container.getBoundingClientRect();
+  var centerX = cRect.width / 2, centerY = cRect.height / 2;
+  var offset = 160;
+
+  function drawArch(pair, color, dashArr, label) {
+    if (!pair[0] || !pair[1]) return;
+    var p1 = getCenter(pair[0]), p2 = getCenter(pair[1]);
+    var midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
+    var dx = p2.x - p1.x, dy = p2.y - p1.y;
     var cx, cy;
-    if(Math.abs(dx) > Math.abs(dy)){
-      cy = midY + (midY<centerY? offset : -offset);
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal pair: arc toward vertical center
+      cy = midY + (midY < centerY ? offset : -offset);
       cx = midX;
     } else {
-      cx = midX + (midX<centerX? offset : -offset);
+      // Vertical pair: arc toward horizontal center
+      cx = midX + (midX < centerX ? offset : -offset);
       cy = midY;
     }
-    var path = document.createElementNS("http://www.w3.org/2000/svg","path");
-    path.setAttribute("d",`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
-    path.setAttribute("stroke",color); path.setAttribute("stroke-width","4"); path.setAttribute("fill","none");
-    if(dashed) path.setAttribute("stroke-dasharray","10,6");
+
+    var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M " + p1.x + " " + p1.y + " Q " + cx + " " + cy + " " + p2.x + " " + p2.y);
+    path.setAttribute("stroke", color);
+    path.setAttribute("stroke-width", "3");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("opacity", "0.85");
+    if (dashArr) path.setAttribute("stroke-dasharray", dashArr);
     svg.appendChild(path);
-    if(label){
-      var text=document.createElementNS("http://www.w3.org/2000/svg","text");
-      text.setAttribute("x",cx); text.setAttribute("y",cy-10); text.setAttribute("fill",color);
-      text.setAttribute("text-anchor","middle"); text.textContent=label;
+
+    // Dots at endpoints
+    [p1, p2].forEach(function(pt) {
+      var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", pt.x); circle.setAttribute("cy", pt.y); circle.setAttribute("r", "4");
+      circle.setAttribute("fill", color); circle.setAttribute("opacity", "0.9");
+      svg.appendChild(circle);
+    });
+
+    if (label) {
+      var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", cx); text.setAttribute("y", cy - 8);
+      text.setAttribute("fill", color); text.setAttribute("text-anchor", "middle");
+      text.setAttribute("font-size", "11"); text.setAttribute("font-family", "DM Mono, monospace");
+      text.setAttribute("font-weight", "500");
+      text.textContent = label;
       svg.appendChild(text);
     }
   }
-  doublePairs.forEach((p,i)=>drawArch(p,false,"#0074D9",doubleLabels[i]));
-  floatPairs.forEach((p,i)=>drawArch(p,true,"#9b59b6",floatLabels[i]));
+
+  doublePairs.forEach(function(p, i) { drawArch(p, "#f59e0b", null, doubleLabels[i]); });
+  floatPairs.forEach(function(p, i)  { drawArch(p, "#a78bfa", "8,5", floatLabels[i]); });
 }
 
-window.onload=function(){ generateUnitDiagram(); calculateAssignments(); };
+// ── Status bar ──────────────────────────────────────────────────────────
+function updateStatus() {
+  var counts = { single: 0, double: 0, float: 0, empty: 0, blocked: 0 };
+  document.querySelectorAll(".room").forEach(function(r) {
+    ["single","double","float","empty","blocked"].forEach(function(c) {
+      if (r.classList.contains(c)) counts[c]++;
+    });
+  });
+  var bar = document.getElementById("statusBar");
+  bar.innerHTML = [
+    { label: "Singles", key: "single", color: "var(--single)" },
+    { label: "Doubles", key: "double", color: "var(--double)" },
+    { label: "Floats",  key: "float",  color: "var(--float)"  },
+    { label: "Empty",   key: "empty",  color: "var(--empty)"  },
+    { label: "Blocked", key: "blocked",color: "var(--blocked)"},
+  ].map(function(item) {
+    return '<div class="status-item"><span style="color:' + item.color + '">' + item.label + '</span> <span class="status-count">' + counts[item.key] + '</span></div>';
+  }).join('');
+}
+
+// ── Toast ───────────────────────────────────────────────────────────────
+var toastTimer;
+function showToast(msg) {
+  var toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { toast.classList.remove("show"); }, 1600);
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+window.onload = function() {
+  generateUnitDiagram();
+  calculateAssignments();
+  updateStatus();
+};
+
+// Re-render SVG lines on resize (positions shift)
+window.addEventListener("resize", updatePairLines);
 </script>
 </body>
 </html>
