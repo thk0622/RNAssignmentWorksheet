@@ -7,24 +7,25 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #181c27;
-    --surface2: #1f2535;
-    --border: #2a3045;
-    --text: #e4e8f5;
-    --text-muted: #6b7694;
-    --accent: #4f9fff;
+    /* University of Washington Purple & Gold */
+    --bg: #1a0f2e;
+    --surface: #241541;
+    --surface2: #331f5c;
+    --border: #5b3d99;
+    --text: #f2eefa;
+    --text-muted: #ab98d1;
+    --accent: #c6a664;
 
     --single: #22c55e;
-    --single-bg: rgba(34,197,94,0.15);
+    --single-bg: rgba(34,197,94,0.18);
     --empty: #ef4444;
-    --empty-bg: rgba(239,68,68,0.15);
-    --blocked: #64748b;
-    --blocked-bg: rgba(100,116,139,0.15);
-    --double: #f59e0b;
-    --double-bg: rgba(245,158,11,0.15);
-    --float: #a78bfa;
-    --float-bg: rgba(167,139,250,0.15);
+    --empty-bg: rgba(239,68,68,0.18);
+    --blocked: #9d8bc4;
+    --blocked-bg: rgba(157,139,196,0.15);
+    --double: #e8b923;
+    --double-bg: rgba(232,185,35,0.18);
+    --float: #22d3ee;
+    --float-bg: rgba(34,211,238,0.15);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -278,10 +279,26 @@
   }
 
   .room.single  { background: var(--single-bg);  border-color: var(--single);  }
-  .room.empty   { background: var(--empty-bg);   border-color: var(--empty);   }
-  .room.blocked { background: var(--blocked-bg); border-color: var(--blocked); opacity: 0.6; }
+  .room.empty   { background: var(--empty-bg);   border-color: var(--empty);   border-style: dashed; }
+  .room.blocked { background: var(--blocked-bg); border-color: var(--blocked); }
   .room.double  { background: var(--double-bg);  border-color: var(--double);  }
   .room.float   { background: var(--float-bg);   border-color: var(--float);   }
+
+  /* Blocked rooms get an X instead of relying on greyscale/opacity,
+     so they read clearly on a black & white printout */
+  .room.blocked::before,
+  .room.blocked::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 135%;
+    height: 2px;
+    background: var(--blocked);
+    z-index: 1;
+  }
+  .room.blocked::before { transform: translate(-50%, -50%) rotate(45deg); }
+  .room.blocked::after  { transform: translate(-50%, -50%) rotate(-45deg); }
 
   .room.selected {
     box-shadow: 0 0 0 3px var(--accent);
@@ -303,6 +320,7 @@
     font-weight: 500;
     pointer-events: none;
     color: var(--text);
+    z-index: 2;
   }
 
   .room.single  .room-number { color: var(--single);  }
@@ -317,6 +335,7 @@
     display: flex; flex-wrap: wrap; gap: 2px;
     pointer-events: none;
     justify-content: center;
+    z-index: 2;
   }
 
   .room-label {
@@ -369,6 +388,21 @@
   }
 
   .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Print ─────────────────────────────────────────────────────────────── */
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+    body { background: #fff; padding: 0; }
+    .top-bar, .toast { display: none !important; }
+    .diagram-wrapper, .card { box-shadow: none; }
+    .room.blocked::before,
+    .room.blocked::after { height: 3px; }
+    .room.empty { border-width: 3px; }
+  }
 </style>
 </head>
 <body>
