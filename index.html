@@ -284,6 +284,18 @@
   .room.double  { background: var(--double-bg);  border-color: var(--double);  }
   .room.float   { background: var(--float-bg);   border-color: var(--float);   }
 
+  /* Admit pairs: an empty room paired into a double/float stays red/dashed —
+     the connecting arc line already shows it's paired */
+  .room.double.empty,
+  .room.float.empty {
+    background: var(--empty-bg);
+    border-color: var(--empty);
+  }
+  .room.double.empty .room-number,
+  .room.float.empty .room-number {
+    color: var(--empty);
+  }
+
   /* Blocked rooms get an X instead of relying on greyscale/opacity,
      so they read clearly on a black & white printout */
   .room.blocked::before,
@@ -397,8 +409,31 @@
       color-adjust: exact;
     }
     body { background: #fff; padding: 0; }
-    .top-bar, .toast { display: none !important; }
+    .toast, .controls-card { display: none !important; }
     .diagram-wrapper, .card { box-shadow: none; }
+
+    /* Nurse Calculator: crisp black-on-white treatment so it's legible
+       and toner-friendly instead of printing the dark on-screen theme */
+    .top-bar { display: block; margin-bottom: 16px; }
+    .top-bar > .card:not(.controls-card) {
+      background: #fff;
+      border: 1.5px solid #000;
+      display: inline-block;
+    }
+    .top-bar .card-label { color: #000; }
+    .top-bar .calc-field label { color: #333; }
+    .top-bar .calc-field input {
+      background: #fff;
+      border: 1px solid #000;
+      color: #000;
+    }
+    .top-bar .calc-result {
+      background: #fff;
+      border: 1px solid #000;
+      color: #000;
+    }
+    .top-bar .calc-result span { color: #000; font-weight: 700; text-decoration: underline; }
+
     .room.blocked::before,
     .room.blocked::after { height: 3px; }
     .room.empty { border-width: 3px; }
@@ -407,8 +442,8 @@
 </head>
 <body>
 
-<h1>RN Assignment Worksheet</h1>
-<p class="subtitle">// UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
+<h1>BPICU RN Assignment Worksheet</h1>
+<p class="subtitle">// 9E BPICU UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
 
 <div class="top-bar">
   <!-- Calculator -->
@@ -602,7 +637,12 @@ function handleRoomClick(roomDiv, labelsEl) {
   if (roomDiv.classList.contains(currentMode)) {
     // If it's a paired room, remove its pair
     removePairContaining(roomDiv);
+    // An empty room paired into a double/float (an admit pair) should
+    // fall back to "empty" when unpaired, not clear completely
+    var revertsToEmpty = (currentMode === "double" || currentMode === "float") &&
+                          roomDiv.classList.contains("empty");
     statusClasses.forEach(c => roomDiv.classList.remove(c));
+    if (revertsToEmpty) roomDiv.classList.add("empty");
     roomDiv.classList.remove("selected");
     updatePairLines();
     updateStatus();
@@ -616,7 +656,11 @@ function handleRoomClick(roomDiv, labelsEl) {
       roomDiv.classList.remove("selected");
       return;
     }
+    // An empty room being paired keeps its "empty" marker — this is an
+    // admit pair: the bed is reserved as part of the pair but still empty
+    var wasEmpty = roomDiv.classList.contains("empty");
     statusClasses.forEach(c => roomDiv.classList.remove(c));
+    if (wasEmpty) roomDiv.classList.add("empty");
     roomDiv.classList.add(currentMode, "selected");
 
     var selectedRooms = Array.from(document.querySelectorAll(".room.selected"));
