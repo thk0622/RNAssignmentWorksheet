@@ -403,36 +403,38 @@
 
   /* Print ─────────────────────────────────────────────────────────────── */
   @media print {
+    :root {
+      /* Light, ink-friendly palette — the dashed/X patterns carry the
+         differentiation, so fills can stay white instead of the dark
+         on-screen theme. Status hues are darkened for contrast on paper. */
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface2: #ffffff;
+      --border: #000000;
+      --text: #000000;
+      --text-muted: #444444;
+
+      --single: #158a45;
+      --single-bg: rgba(21,138,69,0.10);
+      --empty: #dc2626;
+      --empty-bg: rgba(220,38,38,0.08);
+      --blocked: #5b4a8a;
+      --blocked-bg: rgba(91,74,138,0.08);
+      --double: #a9790a;
+      --double-bg: rgba(169,121,10,0.10);
+      --float: #0e7490;
+      --float-bg: rgba(14,116,144,0.10);
+    }
+
     * {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       color-adjust: exact;
     }
-    body { background: #fff; padding: 0; }
+
+    body { padding: 0; }
     .toast, .controls-card { display: none !important; }
     .diagram-wrapper, .card { box-shadow: none; }
-
-    /* Nurse Calculator: crisp black-on-white treatment so it's legible
-       and toner-friendly instead of printing the dark on-screen theme */
-    .top-bar { display: block; margin-bottom: 16px; }
-    .top-bar > .card:not(.controls-card) {
-      background: #fff;
-      border: 1.5px solid #000;
-      display: inline-block;
-    }
-    .top-bar .card-label { color: #000; }
-    .top-bar .calc-field label { color: #333; }
-    .top-bar .calc-field input {
-      background: #fff;
-      border: 1px solid #000;
-      color: #000;
-    }
-    .top-bar .calc-result {
-      background: #fff;
-      border: 1px solid #000;
-      color: #000;
-    }
-    .top-bar .calc-result span { color: #000; font-weight: 700; text-decoration: underline; }
 
     .room.blocked::before,
     .room.blocked::after { height: 3px; }
@@ -443,7 +445,7 @@
 <body>
 
 <h1>BPICU RN Assignment Worksheet</h1>
-<p class="subtitle">// 9E BPICU UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
+<p class="subtitle">// 9E UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
 
 <div class="top-bar">
   <!-- Calculator -->
@@ -478,6 +480,8 @@
       <button class="label-btn" data-label="WR">WR</button>
       <button class="label-btn" data-label="P">Pediatric</button>
       <button class="label-btn" data-label="FB">Floor Boarder</button>
+      <button class="label-btn" data-label="vent">Ventilator</button>
+      <button class="label-btn" data-label="1:1">1:1</button>
       <div class="custom-label-wrap">
         <input type="text" id="customLabelInput" placeholder="Custom…" maxlength="6">
         <button class="label-btn" id="customLabelBtn">Add</button>
