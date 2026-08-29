@@ -312,6 +312,13 @@
   .room.blocked::before { transform: translate(-50%, -50%) rotate(45deg); }
   .room.blocked::after  { transform: translate(-50%, -50%) rotate(-45deg); }
 
+  /* Single rooms get a double-line border — distinct at the edge only,
+     so it doesn't crowd labels placed inside the room */
+  .room.single {
+    border-style: double;
+    border-width: 6px;
+  }
+
   .room.selected {
     box-shadow: 0 0 0 3px var(--accent);
     border-color: var(--accent) !important;
@@ -381,6 +388,14 @@
   .status-item { display: flex; align-items: center; gap: 6px; }
   .status-count { color: var(--text); font-weight: 500; }
 
+  .status-break { flex-basis: 100%; height: 0; }
+  .status-assignments {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-weight: 500;
+  }
+
   /* Toast notification */
   .toast {
     position: fixed;
@@ -400,6 +415,57 @@
   }
 
   .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Pair-naming modal ─────────────────────────────────────────────────── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,5,20,0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    width: min(300px, 90vw);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .modal-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+  .modal-input:focus { outline: none; border-color: var(--accent); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .modal-btn-confirm { background: var(--accent); border-color: var(--accent); color: #1a0f2e; font-weight: 600; }
+  .modal-btn-cancel:hover { border-color: var(--text-muted); }
 
   /* Print ─────────────────────────────────────────────────────────────── */
   @media print {
@@ -433,19 +499,20 @@
     }
 
     body { padding: 0; }
-    .toast, .controls-card { display: none !important; }
+    .toast, .controls-card, .modal-backdrop { display: none !important; }
     .diagram-wrapper, .card { box-shadow: none; }
 
     .room.blocked::before,
     .room.blocked::after { height: 3px; }
     .room.empty { border-width: 3px; }
+    .room.single { border-width: 7px; }
   }
 </style>
 </head>
 <body>
 
-<h1>BPICU RN Assignment Worksheet</h1>
-<p class="subtitle">// 9E UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
+<h1>RN Assignment Worksheet</h1>
+<p class="subtitle">// UNIT FLOOR MAP — NURSE LOAD CALCULATOR</p>
 
 <div class="top-bar">
   <!-- Calculator -->
@@ -512,6 +579,17 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-backdrop" id="pairModalBackdrop">
+  <div class="modal-box">
+    <div class="modal-title" id="pairModalTitle">Label this pair</div>
+    <input type="text" id="pairModalInput" class="modal-input" placeholder="e.g. D1" autocomplete="off">
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-cancel" id="pairModalCancel">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-confirm" id="pairModalConfirm">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── State ───────────────────────────────────────────────────────────────
@@ -670,15 +748,19 @@ function handleRoomClick(roomDiv, labelsEl) {
     var selectedRooms = Array.from(document.querySelectorAll(".room.selected"));
     if (selectedRooms.length === 2) {
       selectedRooms.forEach(r => r.classList.remove("selected"));
-      if (currentMode === "double") {
-        var lbl = prompt("Label for this Double pair:", "") || ("D" + (doublePairs.length + 1));
-        doublePairs.push([selectedRooms[0], selectedRooms[1]]);
-        doubleLabels.push(lbl);
-      } else {
-        floatPairs.push([selectedRooms[0], selectedRooms[1]]);
-        floatLabels.push("F" + floatPairs.length);
-      }
-      updatePairLines();
+      var isDouble = currentMode === "double";
+      var defaultName = isDouble ? ("D" + (doublePairs.length + 1)) : ("F" + (floatPairs.length + 1));
+      promptPairLabel(isDouble ? "Label this Double pair" : "Label this Float pair", defaultName, function(lbl) {
+        if (isDouble) {
+          doublePairs.push([selectedRooms[0], selectedRooms[1]]);
+          doubleLabels.push(lbl || defaultName);
+        } else {
+          floatPairs.push([selectedRooms[0], selectedRooms[1]]);
+          floatLabels.push(lbl || defaultName);
+        }
+        updatePairLines();
+        updateStatus();
+      });
     }
     updateStatus();
     return;
@@ -689,6 +771,44 @@ function handleRoomClick(roomDiv, labelsEl) {
   roomDiv.classList.remove("selected");
   roomDiv.classList.add(currentMode);
   updateStatus();
+}
+
+// ── Pair-naming modal ──────────────────────────────────────────────────
+function promptPairLabel(title, defaultName, onConfirm) {
+  var backdrop = document.getElementById("pairModalBackdrop");
+  var titleEl = document.getElementById("pairModalTitle");
+  var input = document.getElementById("pairModalInput");
+  var confirmBtn = document.getElementById("pairModalConfirm");
+  var cancelBtn = document.getElementById("pairModalCancel");
+
+  titleEl.textContent = title;
+  input.value = defaultName;
+  backdrop.classList.add("show");
+  input.focus();
+  input.select();
+
+  function cleanup() {
+    backdrop.classList.remove("show");
+    confirmBtn.removeEventListener("click", confirm);
+    cancelBtn.removeEventListener("click", cancel);
+    input.removeEventListener("keydown", onKeydown);
+  }
+  function confirm() {
+    var val = input.value.trim();
+    cleanup();
+    onConfirm(val || defaultName);
+  }
+  function cancel() {
+    cleanup();
+    onConfirm(defaultName);
+  }
+  function onKeydown(e) {
+    if (e.key === "Enter") confirm();
+    if (e.key === "Escape") cancel();
+  }
+  confirmBtn.addEventListener("click", confirm);
+  cancelBtn.addEventListener("click", cancel);
+  input.addEventListener("keydown", onKeydown);
 }
 
 function removePairContaining(roomDiv) {
@@ -765,8 +885,18 @@ function updatePairLines() {
     });
 
     if (label) {
+      // Place the label near the curve's actual midpoint (not the control
+      // point, which sits well past the visible arc), nudged slightly
+      // outward so it doesn't overlap the stroke.
+      var qx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
+      var qy = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
+      var ndx = cx - midX, ndy = cy - midY;
+      var nlen = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
+      var lx = qx + (ndx / nlen) * 10;
+      var ly = qy + (ndy / nlen) * 10;
+
       var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", cx); text.setAttribute("y", cy - 8);
+      text.setAttribute("x", lx); text.setAttribute("y", ly);
       text.setAttribute("fill", color); text.setAttribute("text-anchor", "middle");
       text.setAttribute("font-size", "11"); text.setAttribute("font-family", "DM Mono, monospace");
       text.setAttribute("font-weight", "500");
@@ -788,7 +918,7 @@ function updateStatus() {
     });
   });
   var bar = document.getElementById("statusBar");
-  bar.innerHTML = [
+  var rowItems = [
     { label: "Singles", key: "single", color: "var(--single)" },
     { label: "Doubles", key: "double", color: "var(--double)" },
     { label: "Floats",  key: "float",  color: "var(--float)"  },
@@ -797,6 +927,14 @@ function updateStatus() {
   ].map(function(item) {
     return '<div class="status-item"><span style="color:' + item.color + '">' + item.label + '</span> <span class="status-count">' + counts[item.key] + '</span></div>';
   }).join('');
+
+  // Reference count of assignments (singles + double pairs + float pairs)
+  // so it's quick to cross-check against the Nurse Calculator above.
+  var assignmentsCount = counts.single + doublePairs.length + floatPairs.length;
+  var assignmentsRow = '<div class="status-break"></div>' +
+    '<div class="status-item status-assignments"><span style="color:var(--accent)">Assignments</span> <span class="status-count">' + assignmentsCount + '</span></div>';
+
+  bar.innerHTML = rowItems + assignmentsRow;
 }
 
 // ── Toast ───────────────────────────────────────────────────────────────
